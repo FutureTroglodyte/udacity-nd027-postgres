@@ -4,7 +4,7 @@ My submission of Project Data Modeling with Postgres
 
 ## Summary
 
-The goal of this project is to define fact and dimension tables for a star schema for a particular analytic focus, and write an ETL pipeline that transfers data from files in two local directories into these tables in Postgres using Python and SQL.
+The goal of this project is to define fact and dimension tables for a star schema for a particular analytic focus, and write an ETL pipeline that transfers data from files in two local directories into five tables in Postgres using Python and SQL.
 
 ### Raw Data
 
