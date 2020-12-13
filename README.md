@@ -58,6 +58,7 @@ The denormalized fact table `songplays` provides most information sparkify needs
 - `artists`
 - `songs` (missing genre here 'tho)
 - `time`
+
 the joins are very simple -> high readability.
 
 ### Create Database and Tables
