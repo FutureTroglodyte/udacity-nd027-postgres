@@ -8,6 +8,8 @@ The goal of this project is to define fact and dimension tables for a star schem
 
 ### Raw Data
 
+The raw date is in the `data/`folder and contains
+
 1. \*song_data\*.jsons ('artist_id', 'artist_latitude', 'artist_location',
        'artist_longitude', 'artist_name', 'duration', 'num_songs',
        'song_id', 'title', 'year') - a subset of real data from the [Million Song Dataset](http://millionsongdataset.com/).
