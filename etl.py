@@ -6,6 +6,11 @@ from sql_queries import *
 
 
 def process_song_file(cur, filepath):
+    """
+    1. Read \*song_data\*.jsons as pd.DataFrame
+    2. Insert data into `songs` table
+    3. Insert data into `artists` table
+    """
     # open song file
     df = pd.read_json(filepath, lines=True)
 
@@ -34,6 +39,12 @@ def process_song_file(cur, filepath):
 
 
 def process_log_file(cur, filepath):
+    """
+    1. Insert data into `time` table
+    2. Insert data into `users` table
+    3. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`.
+    4. Insert data into `songplays` table
+    """
     # open log file
     df = pd.read_json(filepath, lines=True)
 
@@ -103,6 +114,12 @@ def process_log_file(cur, filepath):
 
 
 def process_data(cur, conn, filepath, func):
+    """
+    Read raw_date insert it into star schema tables
+
+    A wrapper for process_song_file & process_log_file (= func).
+    Applying them to every .json file in every sub-directory of filepath.
+    """
     # get all files matching extension from directory
     all_files = []
     for root, dirs, files in os.walk(filepath):
@@ -122,6 +139,18 @@ def process_data(cur, conn, filepath, func):
 
 
 def main():
+    """    
+    01. Establishes connection with the sparkify database and gets cursor to it
+    02. Read \*song_data\*.jsons as pd.DataFrame
+    03. Insert data into `songs` table
+    04. Insert data into `artists` table
+    05. Read \*log_data\*.jsons as pd.DataFrame, filtered by "page" == "NextSong"
+    06. Insert data into `time` table
+    07. Insert data into `users` table
+    08. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`. It does not work on this small subset as mentioned below.
+    09. Insert data into `songplays` table
+    10. Finally, closes the connection
+    """
     conn = psycopg2.connect(
         "host=127.0.0.1 dbname=sparkifydb user=student password=student"
     )
