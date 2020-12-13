@@ -81,7 +81,7 @@ As all SQL queries are stored in the `sql_queries.py` file, the `etl.py` is very
 1. Insert data into `songplays` table
 
 
-## [Optional] Provide example queries and results for song play analysis.
+## [Optional] Provide Example Queries and Results for Song Play Analysis.
 
 "Since this is a subset of the much larger dataset, the solution dataset will only have 1 row with values for [...] `songid` and `artistid` in the fact table.", as mentioned [project's rubric](https://review.udacity.com/#!/rubrics/2500/view). A query which orders the songs by their number of plays (which can be seeen as their populartity) like the very simple one here
 
