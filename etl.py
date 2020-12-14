@@ -15,35 +15,29 @@ def process_song_file(cur, filepath):
     df = pd.read_json(filepath, lines=True)
 
     # insert song record
-    song_data = df.loc[
-        0, ["song_id", "title", "artist_id", "year", "duration"]
-    ].tolist()
-    song_data[3] = song_data[3].item()  # solving numpy.datatype errors
-    song_data[4] = song_data[4].item()  # solving numpy.datatype errors
+    song_data = df[["song_id", "title", "artist_id", "year", "duration"]].values[0]
     cur.execute(song_table_insert, song_data)
 
     # insert artist record
     artist_data = df.loc[
-        0,
         [
             "artist_id",
             "artist_name",
             "artist_location",
             "artist_latitude",
             "artist_longitude",
-        ],
-    ].tolist()
-    artist_data[3] = artist_data[3].item()  # solving numpy.datatype errors
-    artist_data[4] = artist_data[4].item()  # solving numpy.datatype errors
+        ]
+    ].values[0]
     cur.execute(artist_table_insert, artist_data)
 
 
 def process_log_file(cur, filepath):
     """
-    1. Insert data into `time` table
-    2. Insert data into `users` table
-    3. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`.
-    4. Insert data into `songplays` table
+    1. Read \*log_data\*.jsons as pd.DataFrame, filtered by "page" == "NextSong"
+    2. Insert data into `time` table
+    3. Insert data into `users` table
+    4. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`.
+    5. Insert data into `songplays` table
     """
     # open log file
     df = pd.read_json(filepath, lines=True)
@@ -139,7 +133,7 @@ def process_data(cur, conn, filepath, func):
 
 
 def main():
-    """    
+    """
     01. Establishes connection with the sparkify database and gets cursor to it
     02. Read \*song_data\*.jsons as pd.DataFrame
     03. Insert data into `songs` table

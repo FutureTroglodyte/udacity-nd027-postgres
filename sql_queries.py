@@ -11,12 +11,12 @@ time_table_drop = "DROP TABLE IF EXISTS time"
 songplay_table_create = """
     CREATE TABLE IF NOT EXISTS songplays(
        songplay_id SERIAL PRIMARY KEY,
-       start_time VARCHAR,
-       user_id VARCHAR,
+       start_time TIMESTAMP NOT NULL,
+       user_id INT NOT NULL,
        level VARCHAR,
        song_id VARCHAR,
        artist_id VARCHAR,
-       session_id VARCHAR,
+       session_id INT,
        location VARCHAR,
        user_agent VARCHAR
     )
@@ -35,8 +35,8 @@ user_table_create = """
 song_table_create = """
     CREATE TABLE IF NOT EXISTS songs(
         song_id VARCHAR PRIMARY KEY NOT NULL,
-        title VARCHAR,
-        artist_id VARCHAR,
+        title VARCHAR NOT NULL,
+        artist_id VARCHAR NOT NULL,
         year INT,
         duration FLOAT
     )
@@ -66,6 +66,8 @@ time_table_create = """
 
 # INSERT RECORDS
 
+# TODO: Consider https://hakibenita.com/fast-load-data-python-postgresql
+
 songplay_table_insert = """
     INSERT INTO songplays(
        start_time,
@@ -89,7 +91,8 @@ user_table_insert = """
         level
     )
     VALUES(%s, %s, %s, %s, %s)
-    ON CONFLICT (user_id) DO NOTHING
+    ON CONFLICT (user_id)
+    DO UPDATE SET level=EXCLUDED.level
     """
 
 song_table_insert = """
