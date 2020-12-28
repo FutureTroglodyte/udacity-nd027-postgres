@@ -19,7 +19,7 @@ def process_song_file(cur, filepath):
     cur.execute(song_table_insert, song_data)
 
     # insert artist record
-    artist_data = df.loc[
+    artist_data = df[
         [
             "artist_id",
             "artist_name",
