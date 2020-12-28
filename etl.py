@@ -1,8 +1,28 @@
 import os
+from io import StringIO
 import glob
 import psycopg2
 import pandas as pd
+
 from sql_queries import *
+
+def copy_from_dataframe(cursor, df, table) -> None:
+    """
+    Here we are going save the dataframe in memory 
+    and use copy_from() to copy it to the table
+
+    Code ist taken from
+    https://naysan.ca/2020/06/21/pandas-to-postgresql-using-psycopg2-copy_from/
+    """
+    # save dataframe to an in memory buffer
+    buffer = StringIO()
+    df.to_csv(buffer, index=False, header=False)
+    buffer.seek(0)
+    
+    try:
+        cursor.copy_from(buffer, table, sep=",")
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error: %s" % error)
 
 
 def process_song_file(cur, filepath):
@@ -15,11 +35,11 @@ def process_song_file(cur, filepath):
     df = pd.read_json(filepath, lines=True)
 
     # insert song record
-    song_data = df[["song_id", "title", "artist_id", "year", "duration"]].values[0]
-    cur.execute(song_table_insert, song_data)
+    song_data = df[["song_id", "title", "artist_id", "year", "duration"]]
+    copy_from_dataframe(cursor=cur, df=song_data, table="songs")
 
     # insert artist record
-    artist_data = df.loc[
+    artist_data = df[
         [
             "artist_id",
             "artist_name",
@@ -27,8 +47,8 @@ def process_song_file(cur, filepath):
             "artist_latitude",
             "artist_longitude",
         ]
-    ].values[0]
-    cur.execute(artist_table_insert, artist_data)
+    ]
+    copy_from_dataframe(cursor=cur, df=song_data, table="artists")
 
 
 def process_log_file(cur, filepath):
@@ -70,9 +90,13 @@ def process_log_file(cur, filepath):
         "year",
         "weekday",
     ]
+    time_df = time_df.drop_duplicates(subset="start_time")
 
-    for i, row in time_df.iterrows():
-        cur.execute(time_table_insert, list(row))
+    # for i, row in time_df.iterrows():
+    #     cur.execute(time_table_insert, list(row))
+    copy_from_dataframe(cursor=cur, df=time_df, table="time")
+    # TODO: fix the conflicts with duplicates.
+
 
     # load user table
     user_df = df[["userId", "firstName", "lastName", "gender", "level"]]
