@@ -6,6 +6,11 @@ song_table_drop = "DROP TABLE IF EXISTS songs"
 artist_table_drop = "DROP TABLE IF EXISTS artists"
 time_table_drop = "DROP TABLE IF EXISTS time"
 
+# DROP TEMPORARY TABLES
+
+tmp_users_table_drop = "DROP TABLE IF EXISTS tmp_users"
+tmp_time_table_drop = "DROP TABLE IF EXISTS tmp_time"
+
 # CREATE TABLES
 
 songplay_table_create = """
@@ -54,7 +59,31 @@ artist_table_create = """
 
 time_table_create = """
     CREATE TABLE IF NOT EXISTS time(
-        start_time VARCHAR PRIMARY KEY NOT NULL,
+        start_time TIME PRIMARY KEY NOT NULL,
+        hour INT,
+        day INT,
+        week INT,
+        month INT,
+        year INT,
+        weekday INT
+    )
+    """
+
+# CREATE TEMPORARY TABLES
+
+tmp_user_table_create = """
+    CREATE TEMPORARY TABLE IF NOT EXISTS tmp_users(
+        user_id VARCHAR PRIMARY KEY NOT NULL,
+        first_name VARCHAR,
+        last_name VARCHAR,
+        gender VARCHAR,
+        level VARCHAR
+    )
+    """
+
+tmp_time_table_create = """
+    CREATE TEMPORARY TABLE IF NOT EXISTS tmp_time(
+        start_time TIME PRIMARY KEY NOT NULL,
         hour INT,
         day INT,
         week INT,
@@ -65,8 +94,6 @@ time_table_create = """
     """
 
 # INSERT RECORDS
-
-# TODO: Consider https://hakibenita.com/fast-load-data-python-postgresql
 
 songplay_table_insert = """
     INSERT INTO songplays(
@@ -82,7 +109,9 @@ songplay_table_insert = """
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
 
-user_table_insert = """
+# BULK INSERTS VIA TEMPORARY TABLES
+
+users_table_bulk_insert = """
     INSERT INTO users(
         user_id,
         first_name,
@@ -90,37 +119,13 @@ user_table_insert = """
         gender,
         level
     )
-    VALUES(%s, %s, %s, %s, %s)
+    SELECT *
+    FROM tmp_users
     ON CONFLICT (user_id)
     DO UPDATE SET level=EXCLUDED.level
     """
 
-song_table_insert = """
-    INSERT INTO songs(
-        song_id,
-        title,
-        artist_id,
-        year,
-        duration
-    )
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (song_id) DO NOTHING
-    """
-
-artist_table_insert = """
-    INSERT INTO artists(
-        artist_id,
-        name,
-        location,
-        latitude,
-        longitude
-    )
-    VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (artist_id) DO NOTHING
-    """
-
-
-time_table_insert = """
+time_table_bulk_insert = """
     INSERT INTO time(
         start_time,
         hour,
@@ -130,9 +135,11 @@ time_table_insert = """
         year,
         weekday
     )
-    VALUES(%s, %s, %s, %s, %s, %s, %s)
+    SELECT *
+    FROM tmp_time
     ON CONFLICT (start_time) DO NOTHING
     """
+
 
 # FIND SONGS
 

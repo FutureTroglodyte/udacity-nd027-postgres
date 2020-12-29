@@ -1,8 +1,29 @@
 import os
+from io import StringIO
 import glob
 import psycopg2
 import pandas as pd
+
 from sql_queries import *
+
+
+def copy_from_dataframe(cursor, df, table) -> None:
+    """
+    Here we are going save the dataframe in memory
+    and use copy_from() to copy it to the table
+
+    Code ist taken from
+    https://naysan.ca/2020/06/21/pandas-to-postgresql-using-psycopg2-copy_from/
+    """
+    # save dataframe to an in memory buffer
+    buffer = StringIO()
+    df.to_csv(buffer, index=False, header=False)
+    buffer.seek(0)
+
+    try:
+        cursor.copy_from(buffer, table, sep=",")
+    except (Exception, psycopg2.DatabaseError) as error:
+        print("Error: %s" % error)
 
 
 def process_song_file(cur, filepath):
@@ -15,8 +36,8 @@ def process_song_file(cur, filepath):
     df = pd.read_json(filepath, lines=True)
 
     # insert song record
-    song_data = df[["song_id", "title", "artist_id", "year", "duration"]].values[0]
-    cur.execute(song_table_insert, song_data)
+    song_data = df[["song_id", "title", "artist_id", "year", "duration"]]
+    copy_from_dataframe(cursor=cur, df=song_data, table="songs")
 
     # insert artist record
     artist_data = df[
@@ -27,8 +48,8 @@ def process_song_file(cur, filepath):
             "artist_latitude",
             "artist_longitude",
         ]
-    ].values[0]
-    cur.execute(artist_table_insert, artist_data)
+    ]
+    copy_from_dataframe(cursor=cur, df=song_data, table="artists")
 
 
 def process_log_file(cur, filepath):
@@ -36,7 +57,8 @@ def process_log_file(cur, filepath):
     1. Read \*log_data\*.jsons as pd.DataFrame, filtered by "page" == "NextSong"
     2. Insert data into `time` table
     3. Insert data into `users` table
-    4. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`.
+    4. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs
+       `title`, `artist_name` and `length`.
     5. Insert data into `songplays` table
     """
     # open log file
@@ -70,18 +92,36 @@ def process_log_file(cur, filepath):
         "year",
         "weekday",
     ]
+    time_df = time_df.drop_duplicates(subset="start_time")
 
-    for i, row in time_df.iterrows():
-        cur.execute(time_table_insert, list(row))
+    # For bulk inserting time_df data into time table via copy_from_dataframe,
+    # we need a temporary table tmp_time to deal with duplicate data acorss
+    # the 30 log_data sets.
+    # Kind regards to for his hints Himanshu M in
+    # https://knowledge.udacity.com/questions/426431
+    # (I'm not convinced that this method is faster than row wise inserts)
+
+    # create tmp_time
+    cur.execute(tmp_time_table_create)
+    # copy data from time_df into tmp_time
+    copy_from_dataframe(cursor=cur, df=time_df, table="tmp_time")
+    # bulk insert data from tmp_time to time with ON CONFLICT DO NOTHING
+    cur.execute(time_table_bulk_insert)
+    # drop tmp_time
+    cur.execute(tmp_time_table_drop)
 
     # load user table
     user_df = df[["userId", "firstName", "lastName", "gender", "level"]]
+    user_df = user_df.drop_duplicates(subset="userId")
 
-    # insert user records
-    for i, row in user_df.iterrows():
-        cur.execute(user_table_insert, row)
+    # insert user data (similar to time data above)
+    cur.execute(tmp_user_table_create)
+    copy_from_dataframe(cursor=cur, df=user_df, table="tmp_users")
+    cur.execute(users_table_bulk_insert)
+    cur.execute(tmp_users_table_drop)
 
     # insert songplay records
+    # (here bulk insert does not seem to be an easy option)
     for index, row in df.iterrows():
 
         # get songid and artistid from song and artist tables
@@ -95,7 +135,7 @@ def process_log_file(cur, filepath):
 
         # insert songplay record
         songplay_data = (
-            row.ts,
+            pd.to_datetime(row.ts, unit="ms"),
             row.userId,
             row.level,
             songid,
@@ -141,7 +181,8 @@ def main():
     05. Read \*log_data\*.jsons as pd.DataFrame, filtered by "page" == "NextSong"
     06. Insert data into `time` table
     07. Insert data into `users` table
-    08. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`, `artist_name` and `length`. It does not work on this small subset as mentioned below.
+    08. Get `song_id` and `artist_id` from `song` and `artist` tables given a songs `title`,
+        `artist_name` and `length`. It does not work on this small subset as mentioned below.
     09. Insert data into `songplays` table
     10. Finally, closes the connection
     """
